@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>dots - Interface Braille Nœud</title>
+    <style>
+        :root {
+            /* Cores inspiradas no logo da Nœud */
+            --primary-dark: #071740; /* Azul escuro do texto principal do logo */
+            --primary-blue: #0056b3; /* Azul vibrante dos detalhes */
+            --light-blue: #e6f2ff;
+            --bg-color: #f4f7f6;
+            --dot-inactive: #d1d9e0;
+            --text-main: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 16px; /* Bordas um pouco mais arredondadas para ser mais amigável */
+            box-shadow: 0 8px 24px rgba(7, 23, 64, 0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+            border-top: 5px solid var(--primary-dark);
+        }
+
+        .logo {
+            max-width: 180px;
+            height: auto;
+            margin: 0 auto 15px auto;
+            display: block;
+        }
+
+        h1 {
+            color: var(--primary-blue);
+            margin-bottom: 5px;
+            margin-top: 0;
+            font-size: 2.2em;
+            letter-spacing: 2px;
+        }
+
+        p.subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.95em;
+        }
+
+        .input-group {
+            margin-bottom: 30px;
+        }
+
+        input {
+            width: 80px;
+            height: 80px;
+            font-size: 3em;
+            text-align: center;
+            text-transform: uppercase;
+            border: 2px solid var(--light-blue);
+            border-radius: 12px;
+            color: var(--primary-dark);
+            outline: none;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        input:focus {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 8px rgba(0, 86, 179, 0.2);
+        }
+
+        /* Grid da Célula Braille */
+        .braille-cell {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: repeat(3, 1fr);
+            gap: 15px;
+            width: 80px;
+            height: 130px;
+            margin: 0 auto 30px auto;
+            padding: 20px;
+            background-color: var(--light-blue);
+            border-radius: 12px;
+        }
+
+        .dot {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background-color: var(--dot-inactive);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .dot.active {
+            background-color: var(--primary-dark);
+            box-shadow: 0 0 12px rgba(7, 23, 64, 0.4);
+            transform: scale(1.15);
+        }
+
+        button {
+            background-color: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            font-size: 1.05em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            width: 100%;
+            font-weight: 500;
+        }
+
+        button:hover {
+            background-color: var(--primary-dark);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <img src="logo_empresa.png" alt="Logo Nœud" class="logo">
+        
+        <h1>dots</h1>
+        <p class="subtitle">Simulador de Célula Braille</p>
+
+        <div class="input-group">
+            <input type="text" id="letterInput" maxlength="1" placeholder="A" autocomplete="off">
+        </div>
+
+        <div class="braille-cell" id="brailleCell">
+            <div class="dot" id="dot-1"></div>
+            <div class="dot" id="dot-4"></div>
+            <div class="dot" id="dot-2"></div>
+            <div class="dot" id="dot-5"></div>
+            <div class="dot" id="dot-3"></div>
+            <div class="dot" id="dot-6"></div>
+        </div>
+
+        <button id="verifyBtn">Verificar letra em formato braille</button>
+    </div>
+
+    <script>
+        // Mapeamento dos pontos Braille para as letras de A-Z
+        const brailleMap = {
+            'a': [1], 'b': [1,2], 'c': [1,4], 'd': [1,4,5], 'e': [1,5],
+            'f': [1,2,4], 'g': [1,2,4,5], 'h': [1,2,5], 'i': [2,4], 'j': [2,4,5],
+            'k': [1,3], 'l': [1,2,3], 'm': [1,3,4], 'n': [1,3,4,5], 'o': [1,3,5],
+            'p': [1,2,3,4], 'q': [1,2,3,4,5], 'r': [1,2,3,5], 's': [2,3,4], 't': [2,3,4,5],
+            'u': [1,3,6], 'v': [1,2,3,6], 'w': [2,4,5,6], 'x': [1,3,4,6], 'y': [1,3,4,5,6], 'z': [1,3,5,6]
+        };
+
+        const letterInput = document.getElementById('letterInput');
+        const verifyBtn = document.getElementById('verifyBtn');
+
+        // Atualiza a representação visual em tempo real
+        letterInput.addEventListener('input', (e) => {
+            // Remove caracteres não alfabéticos
+            e.target.value = e.target.value.replace(/[^A-Za-z]/g, '');
+            const char = e.target.value.toLowerCase();
+            
+            // Limpa todos os pontos
+            for(let i = 1; i <= 6; i++) {
+                document.getElementById(`dot-${i}`).classList.remove('active');
+            }
+
+            // Ativa os pontos correspondentes à letra
+            if (brailleMap[char]) {
+                brailleMap[char].forEach(dotNum => {
+                    document.getElementById(`dot-${dotNum}`).classList.add('active');
+                });
+            }
+        });
+
+        // Ação do botão "Verificar"
+        verifyBtn.addEventListener('click', () => {
+            const char = letterInput.value.toLowerCase();
+            if (brailleMap[char]) {
+                const dots = brailleMap[char];
+                console.log(`Verificação: A letra "${char.toUpperCase()}" utiliza os pontos Braille: [${dots.join(', ')}]`);
+                alert(`✨ A letra "${char.toUpperCase()}" está correta!\n\nPontos Braille ativados: ${dots.join(', ')}`);
+            } else {
+                alert('Por favor, insira uma letra válida de A a Z no campo acima.');
+            }
+        });
+    </script>
+</body>
+</html>
